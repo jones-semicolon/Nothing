@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="stylesheet" href="/css/index.css" />
+    <title>Nothing</title>
+    <link rel="shortcut icon" href="nothing.ico" type="image/x-icon" />
+    <!-- <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Poppins"
+      type="text/css"
+      media="all"
+    /> -->
+    <link href="http://fonts.cdnfonts.com/css/helvetica-neue-9" rel="stylesheet">
+    <script src="/js/index.js"></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+      integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body>
+   <span id="dim"></span>
+    <div class="alert" id="alert">
+      <p id="alert-text"></p>
+    </div>
+    <div class="container">
+      <div class="content" id="content">
+        <picture>
+          <source
+            srcset="nothing-light.png"
+            media="(prefers-color-scheme: dark)"
+          />
+          <img src="nothing-logo.png" alt="Nothing" class="logo" />
+        </picture>
+        <p class="banner">Enter your email to reset your password</p>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          value=""
+          placeholder="Email"
+          class="field"
+        />
+        <button type="submit" id="submit">Reset password</button>
+        <a href="index">Try to Log in?</a>
+      </div>
+    </div>
+    <footer>
+      <p>&#169; Semicolon 2022</p>
+    </footer>
+    <script type="module">
+      
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-app.js";
+  const firebaseConfig = {
+    apiKey: "AIzaSyCuxZ0denbyqt5BwLn3md4S_lK4ukwpTmQ",
+    authDomain: "myproject-b37b7.firebaseapp.com",
+    databaseURL: "https://myproject-b37b7-default-rtdb.firebaseio.com",
+    projectId: "myproject-b37b7",
+    storageBucket: "myproject-b37b7.appspot.com",
+    messagingSenderId: "603520430780",
+    appId: "1:603520430780:web:d40d827a497d4791cf96b9",
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  import {
+    getDatabase,
+    ref,
+    get,
+    query,
+    orderByChild,
+    equalTo,
+  } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-database.js";
+  import {
+    getAuth,
+    sendPasswordResetEmail,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-auth.js";
+  const db = getDatabase(app);
+  const auth = getAuth(app);
+  var username = document.getElementById("username");
+
+window.onload = async () => {
+        await loadUser();
+        onAuthStateChanged(auth, async (user) => {
+          if (await user) {
+            window.location.href = "dashboard";
+          } else {
+            unloadUser();
+          }
+        });
+      };
+  
+  function validation() {
+    const val =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@(gmail|yahoo|outlook)\.com$/;
+    return new Promise((resolve, reject) => {
+      if (!username.value) {
+        const error = "Don't make the field useless";
+        reject(error);
+      } else if (username.value.match(val)) {
+        resolve(true);
+      } else {
+        reject("Enter correct email");
+      }
+    });
+  }
+  
+  submit.addEventListener("click", async () => {
+    loading(submit);
+    try {
+      var val = await validation();
+      if (val) {
+        const email = username.value;
+        await getUser();
+        await passReset(email);
+        clear()
+        unload(submit, "Reset password");
+      }
+      await info("Password reset has been sent to your email");
+      unload(submit, "Reset password");
+    } catch (e) {
+      info(e);
+      clear()
+      unload(submit, "Reset password");
+    }
+  });
+  
+  function getUser() {
+    return new Promise((resolve, reject) => {
+      const user = query(
+        ref(db, "users/"),
+        orderByChild("Email"),
+        equalTo(username.value)
+      );
+      get(user)
+        .then((snapshot) => {
+          if (snapshot.exists()) {
+            resolve(true)
+          } else {
+            reject("User not found");
+          }
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
+  }
+  
+  function passReset(email){
+    return new Promise((resolve, reject) => {
+      sendPasswordResetEmail(auth, email)
+      .then(() => {
+      resolve(true)
+      })
+      .catch((error) => {
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      reject(errorMessage)
+      });
+    })
+  }
+    </script>
+  </body>
+</html>

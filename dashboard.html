@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/dashboard.css" />
+    <title>Nothing</title>
+    <script src="/js/index.js"></script>
+    <link rel="shortcut icon" href="nothing.ico" type="image/x-icon" />
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.js"></script>
+    <!-- <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Helvetic"
+      type="text/css"
+      media="all"
+    /> -->
+    <link href="https://fonts.cdnfonts.com/css/helvetica-neue-9" rel="stylesheet">
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,0,0"
+    />
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+      integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+  </head>
+  <body>
+    <span id="dim"></span>
+    <div class="alert" id="alert">
+      <p id="alert-text"></p>
+    </div>
+    <div class="container">
+      <div class="content navClass" id="content">
+          <picture>
+            <source
+              srcset="nothing-light.png"
+              media="(prefers-color-scheme: dark)"
+            />
+            <img src="nothing-logo.png" alt="Nothing" class="logo" />
+          </picture>
+          <p class="name" id="name">Name</p>
+          <div class="links">
+            <a href="profile">Profile</a>
+            <span class="splitter">|</span>
+            <a id="signOut" href="#">Sign out</a>
+          </div>
+          <p class="link" id="userlink">Link</p>
+      </div>
+      <div class="content messageClass">
+        <p class="message-text">Messages</p>
+        <p class="message-count">
+          You have (<span id="count">0</span>) messages.
+        </p>
+        <div class="messages" id="messages">
+          <div class="no-message">
+              <p id="message-content">It's a bit quite here..</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="view-container">
+      <div class="cont">
+        <div class="view-message">
+          <picture>
+            <source
+              srcset="nothing-light.png"
+              media="(prefers-color-scheme: dark)"
+            />
+            <img src="nothing-logo.png" alt="Nothing" class="logo-msg" />
+          </picture>
+          <q class="msg-content"></q>
+          <p id="time"></p>
+        </div>
+        <p class="tip">nothingph.rf.gd</p>
+      </div>
+      <div class="buttons">
+        <button>
+          <span class="material-symbols-outlined">close</span>
+          Close
+        </button>
+        <button>
+          <span class="material-symbols-outlined">file_download</span>
+          Download
+        </button>
+        <button>
+          <span class="material-symbols-outlined">delete</span>
+          Delete
+        </button>
+      </div>
+    </div>
+    <footer>
+      <p>&#169; Semicolon 2022</p>
+    </footer>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-app.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyCuxZ0denbyqt5BwLn3md4S_lK4ukwpTmQ",
+        authDomain: "myproject-b37b7.firebaseapp.com",
+        databaseURL: "https://myproject-b37b7-default-rtdb.firebaseio.com",
+        projectId: "myproject-b37b7",
+        storageBucket: "myproject-b37b7.appspot.com",
+        messagingSenderId: "603520430780",
+        appId: "1:603520430780:web:d40d827a497d4791cf96b9",
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      import {
+        getDatabase,
+        ref,
+        child,
+        get,
+        remove,
+        query,
+        onValue,
+        orderByChild,
+      } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-database.js";
+      import {
+        getAuth,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-auth.js";
+      const db = getDatabase(app);
+      const auth = getAuth(app);
+      const dbref = ref(db);
+      let name = document.getElementById("name");
+      let userlink = document.getElementById("userlink");
+      let signOut = document.getElementById("signOut");
+      let content = document.getElementById("content");
+      let messcontent = document.getElementsByClassName("message-container");
+      let msgcontent = document.getElementsByClassName("msg-content")[0];
+      let viewcont = document.getElementsByClassName("view-container")[0];
+      let saveMsg = document.getElementsByClassName(
+        "material-symbols-outlined"
+      )[1];
+      let closeMsg = document.getElementsByClassName(
+        "material-symbols-outlined"
+      )[0];
+      let delMsg = document.getElementsByClassName(
+        "material-symbols-outlined"
+      )[2];
+      var numcount = document.getElementById("count");
+      let messages = document.getElementById("messages");
+      let time = document.getElementById("time");
+      var displayName = null;
+      var message = null;
+      var uid = null;
+      var count = 0;
+      var originLocation = window.location.hostname;
+      
+
+      userlink.addEventListener("click", function () {
+        var usrlnk = originLocation + "/message?=" + displayName;
+        navigator.clipboard.writeText(usrlnk);
+        var infoAlert = "Link copied";
+        info(infoAlert);
+      });
+
+      window.onload = () => {
+        loadUser();
+        onAuthStateChanged(auth, async (user) => {
+          if (await user) {
+            var currentUser = await user;
+            await getUser(currentUser);
+            await getMessage(uid);
+            await unloadUser();
+          } else {
+            window.location.href = window.location.origin;
+          }
+        });
+      };
+
+      function getUser(user) {
+        return new Promise((resolve) => {
+          if (user !== null) {
+            displayName = user.displayName;
+            uid = user.uid;
+
+            name.textContent = displayName;
+            userlink.textContent =
+              originLocation + "/message?=" + displayName;
+            resolve(uid);
+          }
+        });
+      }
+
+      function getMessage(uid) {
+        return new Promise((resolve) => {
+          const msg = ref(db, "users/" + uid + "/messages/");
+
+          onValue(msg, (snapshot) => {
+            if (snapshot.exists()) {
+              message = [];
+              count = snapshot.size;
+              numcount.textContent = count;
+              if (count > 0) {
+                snapshot.forEach((childSnap) => {
+                  message.push(childSnap.val());
+                });
+                messageTemplate(message);
+                resolve(true);
+              } else {
+                unloadUser();
+                resolve(true);
+              }
+            } else {
+              unloadUser();
+              resolve(true);
+            }
+          });
+        });
+      }
+
+      function messageTemplate(txtMessage) {
+        var num = 1;
+        messages.innerHTML = "";
+        txtMessage.reverse().forEach((element) => {
+          var div = document.createElement("div");
+          div.classList.add("message-container");
+          var q = document.createElement("q");
+          q.classList.add("message-content");
+          var p = document.createElement("p");
+          p.classList.add("time-content");
+          q.setAttribute("id", num++);
+          p.setAttribute("id", num-1);
+          div.setAttribute("id", num-1);
+          q.textContent += element.message;
+          p.textContent += timeSince(element.date);
+          var setinterv = setInterval(function () {
+            p.textContent = "";
+            p.textContent += timeSince(element.date);
+          }, 1000);
+          messages.appendChild(div);
+          div.append(q, p);
+        });
+      }
+
+      function timeSince(date) {
+        //messages.innerHTML = ""
+        var seconds = Math.floor((new Date() - date) / 1000);
+
+        var interval = seconds / 31536000;
+
+        if (interval > 1) {
+          if (interval > 2 || interval == 2) {
+            return Math.floor(interval) + " years ago";
+          } else {
+            return "A year ago";
+          }
+        }
+        interval = seconds / 2592000;
+        if (interval > 1) {
+          if (interval > 2 || interval == 2) {
+            return Math.floor(interval) + " months ago";
+          } else {
+            return "A month ago";
+          }
+        }
+        interval = seconds / 86400;
+        if (interval > 1) {
+          if (interval > 2 || interval == 2) {
+            return Math.floor(interval) + " days ago";
+          } else {
+            return "A day ago";
+          }
+        }
+        interval = seconds / 3600;
+        if (interval > 1 || interval == 1) {
+          if (interval > 2 || interval == 2) {
+            return Math.floor(interval) + " hours ago";
+          } else {
+            return "An hour ago";
+          }
+        }
+        interval = seconds / 60;
+        if (interval > 1) {
+          if (interval > 2 || interval == 2) {
+            return Math.floor(interval) + " minutes ago";
+          } else {
+            return "A minute ago";
+          }
+        }
+        return "New";
+      }
+
+      document.addEventListener(
+        "click",
+        function (e) {
+          e = e || window.event;
+          var target = e.target.id;
+          if (target > 0) {
+            let targetId = document.getElementById(target);
+            let msgs = document.querySelector(".view-message");
+                        msgs.style.cursor = "default";
+                                    msgcontent.style.cursor = "default";
+            viewcont.style.display = "flex";
+            msgcontent.textContent = message[target - 1].message;
+            time.textContent = timeSince(message[target - 1].date);
+          }
+        },
+        false
+      );
+
+      signOut.addEventListener("click", () => {
+        auth.signOut();
+        window.location.href = window.location.origin;
+      });
+
+      closeMsg.addEventListener("click", () => {
+        viewcont.style.display = "none";
+      });
+
+      delMsg.addEventListener("click", () => {
+        return new Promise((resolve) => {
+          const msg = ref(db, "users/" + uid + "/messages/");
+
+          get(ref(db, "users/" + uid + "/messages/")).then((snapshot) => {
+            snapshot.forEach((childSnap) => {
+              if (childSnap.val().message == msgcontent.textContent) {
+                const ky = childSnap.key;
+                // var div = document.querySelectorAll("div.message-container").length == 1;
+                // if(count == 1 && div){
+                //   div = document.getElementById("1");
+                //   div.remove();
+                //   count = 0;
+                // }
+                remove(ref(db, "users/" + uid + "/messages/" + ky)).then(() => {
+                  viewcont.style.display = "none";
+                  getMessage(uid);
+                  resolve(true);
+                }).catch( err => {
+                  console.log(err);
+                });
+              }
+            });
+          });
+        });
+      });
+
+      saveMsg.addEventListener("click", () => {
+        const target = document.querySelector(".cont");
+        html2canvas(target, { scale: 5 }).then((canvas) => {
+          const image = canvas.toDataURL("image/jpeg");
+          const a = document.createElement("a");
+          a.setAttribute("href", image);
+          a.setAttribute("download", "image");
+          a.click();
+          a.remove();
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/css/index.css" />
+  <title>Nothing</title>
+  <script src="/js/index.js"></script>
+  <link rel="shortcut icon" href="nothing.ico" type="image/x-icon" />
+  <!-- <link
+   rel="stylesheet"
+   href="https://www.googleapis.com/webfonts/v1/webfonts?key=Poppins"
+   type="text/css"
+   media="all"
+  /> -->
+  <link href="http://fonts.cdnfonts.com/css/helvetica-neue-9" rel="stylesheet">
+  <script
+   src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"
+   integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA=="
+   crossorigin="anonymous"
+   referrerpolicy="no-referrer"
+  ></script>
+ </head>
+ <body>
+  <span id="dim"></span>
+  <div class="alertbox" id="alertbox">
+   <p>Do you really want to delete your account?</p>
+   <div class="conbtn">
+    <button type="submit" id="yes">Yes</button>
+    <button type="submit" id="no">no</button>
+   </div>
+  </div>
+  <div class="container">
+   <div class="alert" id="alert">
+    <p id="alert-text"></p>
+   </div>
+   <div class="content" id="content">
+    <picture>
+     <source srcset="nothing-light.png" media="(prefers-color-scheme: dark)" />
+     <img src="nothing-logo.png" alt="Nothing" class="logo" />
+    </picture>
+    <p class="name" id="name">Name</p>
+    <div class="links">
+     <a href="dashboard">Dashboard</a>
+     <span class="splitter">|</span>
+     <a id="signOut" href="#">Sign out</a>
+    </div>
+    <input
+     type="text"
+     name="username"
+     id="username"
+     value=""
+     placeholder="Username"
+     class="field"
+    />
+    <input
+     type="text"
+     name="email"
+     id="email"
+     value=""
+     placeholder="Email"
+     class="field"
+    />
+    <input
+     type="password"
+     name="password"
+     id="oldpassword"
+     value=""
+     placeholder="Current Password"
+     class="field pass"
+    />
+    <button type="submit" id="changepass">Change Password</button>
+    <button type="submit" id="deletebtn">Delete Account</button>
+    <button type="submit" id="submit">Update profile</button>
+   </div>
+  </div>
+  <footer>
+    <p>&#169; Semicolon 2022</p>
+  </footer>
+  <script type="module">
+   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-app.js";
+   const firebaseConfig = {
+    apiKey: "AIzaSyCuxZ0denbyqt5BwLn3md4S_lK4ukwpTmQ",
+    authDomain: "myproject-b37b7.firebaseapp.com",
+    databaseURL: "https://myproject-b37b7-default-rtdb.firebaseio.com",
+    projectId: "myproject-b37b7",
+    storageBucket: "myproject-b37b7.appspot.com",
+    messagingSenderId: "603520430780",
+    appId: "1:603520430780:web:d40d827a497d4791cf96b9",
+   };
+
+   // Initialize Firebase
+   const app = initializeApp(firebaseConfig);
+   import {
+    getDatabase,
+    ref,
+    set,
+    child,
+    update,
+    remove,
+    get,
+   } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-database.js";
+   import {
+    getAuth,
+    onAuthStateChanged,
+    updateProfile,
+    updateEmail,
+    deleteUser,
+    reauthenticateWithCredential,
+    EmailAuthProvider,
+    sendPasswordResetEmail,
+   } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-auth.js";
+   const db = getDatabase(app);
+   const auth = getAuth(app);
+   const user = auth.currentUser;
+
+   let name = document.getElementById("name");
+   let username = document.getElementById("username");
+   let email = document.getElementById("email");
+   let password = document.getElementById("oldpassword");
+   let passbtn = document.getElementById("changepass");
+   let signOut = document.getElementById("signOut");
+   let upDate = document.getElementById("submit");
+   let deletebtn = document.getElementById("deletebtn");
+   let content = document.getElementById("content");
+   var passClass = document.querySelector(".pass");
+   var currentUser = null;
+   var displayName = null;
+   var uid = null;
+   let btnId = submit;
+   let txtCntnt = "Update profile";
+   let yesbtn = document.getElementById("yes");
+   let nobtn = document.getElementById("no");
+
+   signOut.addEventListener("click", function () {
+    auth.signOut();
+    window.location.href = window.location.origin;
+   });
+
+   window.onload = () => {
+    loadUser();
+    onAuthStateChanged(auth, async (user) => {
+     if (await user) {
+      currentUser = await user;
+      await getUser(currentUser);
+      await userInfo(currentUser);
+      unloadUser();
+     } else {
+      window.location.href = window.location.origin;
+     }
+    });
+   };
+
+   function getUser(user) {
+    return new Promise((resolve) => {
+     if (user !== null) {
+      displayName = user.displayName;
+      uid = user.uid;
+      name.textContent = displayName;
+      resolve(uid);
+     }
+    });
+   }
+
+   function userInfo(user) {
+    if (user !== null) {
+     const getEmail = user.email;
+     email.value = getEmail;
+     username.value = displayName;
+    }
+   }
+
+   passbtn.addEventListener("click", async () => {
+    loading(passbtn);
+    try {
+     await passReset(email.value);
+     info("We sent a Password reset on your email account");
+     await unload(passbtn, "Change Password");
+    } catch (e) {
+     info(e);
+     unload(passbtn, "Change Password");
+    }
+   });
+
+   function passReset(email) {
+    return new Promise((resolve, reject) => {
+     sendPasswordResetEmail(auth, email)
+      .then(() => {
+       resolve(true);
+      })
+      .catch((error) => {
+       const errorCode = error.code;
+       const errorMessage = error.message;
+       reject(errorMessage);
+      });
+    });
+   }
+
+   function passCollapse() {
+    if (passClass.style.display != "block") {
+     passClass.style.display = "block";
+     info("Enter password for reconfirmation");
+     return;
+    } else if (password.style.display == "block" && password.value != "") {
+     return true;
+    } else {
+     password.style.display = "none";
+     return false;
+    }
+   }
+
+   upDate.addEventListener("click", async () => {
+    if (valid()) {
+     info("Don't make all fields useless");
+     return false;
+    }
+    if (passCollapse()) {
+     loading(upDate);
+     try {
+      if (await reAuth()) {
+       updateProfile(auth.currentUser, {
+        displayName: username.value,
+       })
+        .then(() => {
+         update(ref(db, "users/" + currentUser.uid), {
+          Username: username.value,
+         });
+         updateEmail(auth.currentUser, email.value)
+          .then(() => {
+           update(ref(db, "users/" + currentUser.uid), {
+            Email: email.value,
+           });
+           info("Profile updated");
+           passClass.style.display = "none";
+           unload(upDate, "Update profile");
+          })
+          .catch((error) => {
+           info(error.message);
+          });
+        })
+        .catch((error) => {
+         info(error);
+        });
+      }
+     } catch (e) {
+      info(e);
+      unload(upDate, "Update profile");
+     }
+    }
+   });
+
+   function reAuth() {
+    return new Promise((resolve, reject) => {
+     const credential = EmailAuthProvider.credential(
+      email.value,
+      password.value
+     );
+     reauthenticateWithCredential(currentUser, credential)
+      .then(() => {
+       resolve(true);
+      })
+      .catch((error) => {
+       //console.log(error.message);
+       reject(error.message);
+      });
+    });
+   }
+
+   deletebtn.addEventListener("click", async () => {
+    if (passCollapse()) {
+     loading(deletebtn);
+     try {
+      if (await reAuth()) {
+       remove(ref(db, "users/" + uid))
+        .then(() => {
+         deleteUser(currentUser).then(() => {
+          info("Account Deleted");
+          unload(deletebtn, "Delete Account");
+          window.location.href = window.location.origin;
+         });
+        })
+        .catch((error) => {
+         info(error.message);
+         unload(deletebtn, "Delete Account");
+        });
+      }
+     } catch (e) {
+      info(e);
+      unload(deletebtn, "Delete Account");
+      deletebtn.style.backgroundColor = "var(--red)";
+     }
+    }
+   });
+
+   function valid() {
+    return username.value == "" || email.value == "" ? true : false;
+   }
+  </script>
+ </body>
+</html>
